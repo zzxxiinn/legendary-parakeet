@@ -9,6 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@babel/standalone": "^7.19.5",
+    "acorn": "^8.8.0",
+    "debounce": "^1.2.1",
+    "escodegen": "^2.0.0",
+    "object-path": "^0.11.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
