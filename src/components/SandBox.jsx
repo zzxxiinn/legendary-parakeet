@@ -28,6 +28,7 @@ export class SandBox extends React.Component {
 
     componentDidMount() {
         this.editor = createEditor(this.el);
+        console.log(this.editor)
         this.editor.run(code);
     }
 

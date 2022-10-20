@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import ReactDOM from "react-dom/client";
 import ObjPath from "object-path";
 
 import * as Acorn from "acorn";
@@ -25,7 +25,12 @@ export function findReactNode(ast) {
 
 export function createEditor(domElement, moduleResolver = () => null) {
     function render(node) {
-        ReactDOM.render(node, domElement);
+        const root = ReactDOM.createRoot(domElement)
+        root.render(
+            <React.StrictMode>
+                {node}
+            </React.StrictMode>
+        )
     }
 
     function require(moduleName) {
@@ -38,22 +43,31 @@ export function createEditor(domElement, moduleResolver = () => null) {
             const tcode = babelTransform(code, { presets: ["es2015", "react"] })
                 .code;
 
+            console.log('tcode', tcode)
+
             // 2. get AST
             const ast = Acorn.parse(tcode, {
                 sourceType: "module"
             });
+            console.log('ast -->', ast)
 
             // 3. find React.createElement expression in the body of program
             const rnode = findReactNode(ast);
+
+            console.log('rnode -->', rnode)
 
             if (rnode) {
                 const nodeIndex = ast.body.indexOf(rnode);
                 // 4. convert the React.createElement invocation to source and remove the trailing semicolon
                 const createElSrc = generateJs(rnode).slice(0, -1);
+                console.log('createElSrc -->', createElSrc)
+
                 // 5. transform React.createElement(...) to render(React.createElement(...)),
                 // where render is a callback passed from outside
                 const renderCallAst = Acorn.parse(`render(${createElSrc})`)
                     .body[0];
+                console.log('renderCallAst -->', renderCallAst)
+
 
                 ast.body[nodeIndex] = renderCallAst;
             }
@@ -63,6 +77,8 @@ export function createEditor(domElement, moduleResolver = () => null) {
         } catch (ex) {
             // in case of exception render the exception message
             render(<pre style={{ color: "red" }}>{ex.message}</pre>);
+            return (...arg) => {
+                console.log('err', arg)}
         }
     }
 
@@ -74,6 +90,7 @@ export function createEditor(domElement, moduleResolver = () => null) {
 
         // compiles and invokes the wrapper function
         run(code) {
+            console.log('in run', this)
             this.compile(code)(React, render, require);
         },
 
