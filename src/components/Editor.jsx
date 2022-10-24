@@ -4,8 +4,8 @@ import ObjPath from "object-path";
 
 import * as Acorn from "acorn";
 
-import { generate as generateJs } from "escodegen";
-import { transform as babelTransform } from "@babel/standalone";
+import {generate as generateJs} from "escodegen";
+import {transform as babelTransform} from "@babel/standalone";
 
 function isReactNode(node) {
     const type = node.type; //"ExpressionStatement"
@@ -19,7 +19,7 @@ function isReactNode(node) {
 }
 
 export function findReactNode(ast) {
-    const { body } = ast;
+    const {body} = ast;
     return body.find(isReactNode);
 }
 
@@ -40,45 +40,38 @@ export function createEditor(domElement, moduleResolver = () => null) {
     function getWrapperFunction(code) {
         try {
             // 1. transform code
-            const tcode = babelTransform(code, { presets: ["es2015", "react"] })
-                .code;
-
-            console.log('tcode', tcode)
+            const tcode = babelTransform(code, {presets: ["es2015", "react"]}).code;
 
             // 2. get AST
-            const ast = Acorn.parse(tcode, {
-                sourceType: "module"
-            });
-            console.log('ast -->', ast)
+            const ast = Acorn.parse(tcode, {sourceType: "module"});
 
             // 3. find React.createElement expression in the body of program
             const rnode = findReactNode(ast);
 
-            console.log('rnode -->', rnode)
 
             if (rnode) {
                 const nodeIndex = ast.body.indexOf(rnode);
                 // 4. convert the React.createElement invocation to source and remove the trailing semicolon
                 const createElSrc = generateJs(rnode).slice(0, -1);
-                console.log('createElSrc -->', createElSrc)
-
                 // 5. transform React.createElement(...) to render(React.createElement(...)),
                 // where render is a callback passed from outside
-                const renderCallAst = Acorn.parse(`render(${createElSrc})`)
-                    .body[0];
-                console.log('renderCallAst -->', renderCallAst)
-
+                const renderCallAst = Acorn.parse(`render(${createElSrc})`, {}).body[0];
 
                 ast.body[nodeIndex] = renderCallAst;
             }
 
             // 6. create a new wrapper function with all dependency as parameters
-            return new Function("React", "render", "require", generateJs(ast));
+            const genAst = generateJs(ast)
+            console.log(genAst)
+            return new Function("React", "render", "require", genAst);
         } catch (ex) {
             // in case of exception render the exception message
-            render(<pre style={{ color: "red" }}>{ex.message}</pre>);
+            render(<pre style={{color: "red"}}>{ex.message}</pre>);
+            console.log('error-> ex', ex)
+
             return (...arg) => {
-                console.log('err', arg)}
+                console.log('err', arg)
+            }
         }
     }
 
